@@ -1,0 +1,61 @@
+name: Update Docker Container
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'  # Only trigger when app files change
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+
+jobs:
+  update-container:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+    
+    - name: Get EC2 Instance Details
+      run: |
+        terraform init
+        INSTANCE_ID=$(terraform output -raw instance_id)
+        echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+    
+    - name: Update Docker Container on EC2
+      run: |
+        # Create update script
+        cat > update.sh <<'EOF'
+        #!/bin/bash
+        cd /home/ec2-user/app
+        
+        # Stop and remove old container
+        sudo docker stop web || true
+        sudo docker rm web || true
+        
+        # Rebuild image
+        sudo docker build -t mywebapp:latest .
+        
+        # Run new container
+        sudo docker run -d -p 80:80 --name web mywebapp:latest
+        EOF
+        
+        # Send files to EC2 and execute
+        aws ssm send-command \
+          --instance-ids ${{ env.INSTANCE_ID }} \
+          --document-name "AWS-RunShellScript" \
+          --parameters commands="$(cat update.sh)" \
+          --comment "Update Docker container"
