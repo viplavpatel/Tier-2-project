@@ -35,7 +35,7 @@ resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.web_vpc.id
   
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block = "0.0.0.0/0" //route for all internet traffic
     gateway_id = aws_internet_gateway.web_igw.id
   }
   
@@ -109,7 +109,7 @@ resource "aws_instance" "web_server" {
   subnet_id              = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
-  key_name = "linuxkey" //replace with your key pair name
+  key_name = "linuxkey" //SSH key already created in AWS
   
   
   # User data script (runs on first boot)

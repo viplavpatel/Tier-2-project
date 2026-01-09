@@ -7,15 +7,15 @@ on:
   workflow_dispatch:  # Allow manual trigger
 
 env:
-  AWS_REGION: eu-west-2
+  AWS_REGION: eu-west-2 #AWS region
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest #Use latest Ubuntu runner
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4 #Checkout the repository code
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -39,15 +39,15 @@ jobs:
       run: terraform plan -out=tfplan
     
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' #Only apply on main branch
       run: terraform apply -auto-approve tfplan
     
     - name: Get EC2 Public IP
-      id: get_ip
+      id: get_ip #Set step ID to reference outputs
       run: |
         PUBLIC_IP=$(terraform output -raw instance_public_ip)
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-        echo "### Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Successful! " >> $GITHUB_STEP_SUMMARY
         echo "Access your app at: http://$PUBLIC_IP" >> $GITHUB_STEP_SUMMARY
     
     - name: Display Public IP
